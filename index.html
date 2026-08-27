@@ -107,6 +107,52 @@
   }
   .deadline-banner .countdown{ font-weight:600; color:var(--parchment); }
 
+  /* ---------- Criteria button + modal ---------- */
+  .criteria-btn-wrap{ text-align:center; margin: 14px 0 0; }
+  .criteria-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:10px 20px; border-radius:9px; cursor:pointer;
+    background: rgba(198,161,91,0.1); border:1px solid rgba(198,161,91,0.4);
+    color: var(--gold-bright); font-size:13.5px; font-weight:600;
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  .criteria-btn:hover{ background: rgba(198,161,91,0.2); }
+
+  .modal-overlay{
+    position:fixed; inset:0; background: rgba(6,12,12,0.82);
+    display:none; align-items:flex-start; justify-content:center;
+    padding: 40px 16px; z-index:100; overflow-y:auto;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-box{
+    max-width:720px; width:100%;
+    background: var(--ink-2);
+    border:1px solid var(--line); border-radius:14px;
+    padding: 30px 28px 34px; box-shadow: var(--shadow);
+    margin-bottom: 40px;
+  }
+  .modal-box h2{
+    font-family:'Fraunces', serif; font-weight:600; font-size:24px;
+    color:var(--gold-bright); margin:0 0 6px;
+  }
+  .modal-box .modal-sub{ font-size:13px; color:rgba(243,236,219,0.55); margin-bottom:22px; }
+  .modal-close{
+    float:right; background:none; border:1px solid var(--line); color:var(--parchment);
+    width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:16px; line-height:1;
+  }
+  .modal-close:hover{ border-color: var(--gold-bright); color:var(--gold-bright); }
+  .criteria-item{ border-top:1px solid var(--line); padding:16px 0; }
+  .criteria-item:first-of-type{ border-top:none; padding-top:0; }
+  .criteria-item h3{
+    font-family:'Fraunces', serif; font-weight:600; font-size:16px; margin:0 0 8px; color:var(--parchment);
+  }
+  .criteria-item ul{ margin:0; padding-left:18px; }
+  .criteria-item li{ font-size:13px; line-height:1.65; color:rgba(243,236,219,0.75); margin-bottom:4px; }
+  .criteria-item .period{
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px; color: var(--emerald-bright);
+    margin-top:8px; display:block;
+  }
+
   /* ---------- Identification gate ---------- */
   .gate{
     max-width:460px;
@@ -383,6 +429,14 @@
 <body>
 
 <div id="app"></div>
+<div class="modal-overlay" id="criteria-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="close-criteria">✕</button>
+    <h2>Critères d'attribution</h2>
+    <div class="modal-sub">ICÔNE FRANCO-ARABE — Prix d'Excellence 2026 — Document de présentation officielle</div>
+    <div id="criteria-list"></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -532,6 +586,111 @@ function renderDeadlineBanner(){
     return `<div class="deadline-banner closed">🔒 Le vote est terminé — clôturé le vendredi 28 août 2026 à 15h00 (heure de la Guinée)</div>`;
   }
   return `<div class="deadline-banner">Le vote se termine le <strong>vendredi 28 août 2026 à 15h00</strong> (heure de la Guinée) — <span class="countdown">${formatCountdown(remaining)}</span> restant</div>`;
+}
+
+/* ============================================================
+   CRITÈRES D'ATTRIBUTION OFFICIELS — par catégorie
+   ============================================================ */
+const CRITERIA = [
+  {
+    title: "Entrepreneuriat & Business",
+    items: [
+      "Distinction accordée aux dirigeants et fondateurs (entreprises, finance, éducation) ayant fait preuve d'un impact mesurable : croissance, emplois créés, innovation financière, inclusion économique.",
+      "Intégrité reconnue dans les affaires."
+    ],
+    period: "Période de référence : 24 à 36 derniers mois."
+  },
+  {
+    title: "Banque & Finance",
+    items: [
+      "Impact démontrable & mesurable : croissance financière avérée, création nette d'emplois, déploiement d'innovations sectorielles et actions concrètes en faveur de l'inclusion économique.",
+      "Intégrité et éthique : conduite exemplaire des affaires, gouvernance irréprochable et respect strict des normes de conformité."
+    ],
+    period: "Période d'évaluation : réalisations et performances des 36 derniers mois."
+  },
+  {
+    title: "Diplomatie & Relations Internationales",
+    items: [
+      "Réservé aux dirigeants ayant exercé des responsabilités stratégiques à l'échelle nationale ou internationale.",
+      "Contribution majeure : action déterminante en faveur du renforcement des relations franco-arabes ou du développement institutionnel.",
+      "Influence & intégrité : leadership d'excellence, largement salué par les pairs et reconnu par l'opinion publique."
+    ],
+    period: "Période d'évaluation : ensemble de la carrière, avec un accent particulier sur les 3 dernières années."
+  },
+  {
+    title: "Administration, Droit et Magistrature",
+    items: [
+      "Profils éligibles : magistrats, avocats et juristes en exercice.",
+      "Impact & réformes : actions concrètes en faveur de l'indépendance judiciaire, de la modernisation du droit ou de la démocratisation de l'accès à la justice.",
+      "Éthique & impartialité : réputation exemplaire d'intégrité, de rigueur de pensée et de neutralité absolue."
+    ],
+    period: "Période d'évaluation : ensemble de la carrière, avec attention aux 3 dernières années."
+  },
+  {
+    title: "Académie, Recherche & Innovation",
+    items: [
+      "Profils éligibles : enseignants-chercheurs, scientifiques et innovateurs académiques ou industriels reconnus par leurs pairs, y compris dans les nouvelles technologies et l'intelligence artificielle.",
+      "Impact & découvertes : publications de premier ordre, brevets déposés ou avancées scientifiques et pluridisciplinaires à fort impact.",
+      "Rayonnement intellectuel : contribution déterminante à la coopération scientifique et aux échanges académiques au sein de l'espace franco-arabe."
+    ],
+    period: "Période d'évaluation : travaux des 3 à 5 dernières années, ou impact d'une œuvre majeure récente."
+  },
+  {
+    title: "Médias, Communication, Chronique & Information",
+    items: [
+      "Profils éligibles : journalistes, animateurs et professionnels des médias.",
+      "Information de qualité, éthique et responsable.",
+      "Influence positive démontrable sur l'opinion publique."
+    ],
+    period: "Période de référence : 12 derniers mois."
+  },
+  {
+    title: "Paix, Société Civile & Leadership",
+    items: [
+      "Profils éligibles : leaders religieux, dirigeants d'ONG, activistes et acteurs du secteur associatif.",
+      "Impact & réconciliation : actions concrètes en faveur de la paix, du dialogue interculturel ou interreligieux, et du renforcement de la cohésion sociale.",
+      "Légitimité & notoriété : ancrage local ou international fort, reconnaissance avérée de la communauté et des pairs."
+    ],
+    period: "Période d'évaluation : 3 dernières années, voire l'ensemble de la carrière."
+  },
+  {
+    title: "Leadership Féminin, Paix & Éducation",
+    items: [
+      "Profils éligibles : dirigeantes, chercheuses, pionnières ou figures de la société civile d'une portée remarquable. Prix cumulable avec une nomination dans une autre catégorie.",
+      "Transmission & impact : posture avérée de modèle, actions de mentorat et promotion active de l'émancipation des femmes par la paix et l'éducation.",
+      "Portée du prix : hommage à une vision transformatrice et à un leadership féminin d'exception."
+    ],
+    period: "Période d'évaluation : ensemble de la carrière, ancré par une réalisation marquante récente."
+  },
+  {
+    title: "Prix d'Excellence — Distinction suprême",
+    items: [
+      "Distinction transversale qui ne récompense pas un secteur en particulier, mais un profil exceptionnel choisi parmi les lauréats des huit catégories — un « prix des prix ».",
+      "Rayonnement transversal : impact reconnu au-delà du seul secteur d'activité.",
+      "Exemplarité et intégrité : parcours sans controverse majeure, reconnu comme modèle par ses pairs.",
+      "Contribution au rapprochement franco-arabe : action concrète ayant renforcé les liens économiques, culturels, diplomatiques ou académiques.",
+      "Portée et notoriété dépassant le cadre national ou régional ; constance dans l'excellence sur plusieurs années."
+    ],
+    period: "Mode de désignation : le jury sélectionne le Prix d'Excellence parmi les lauréats des huit catégories sectorielles."
+  }
+];
+
+function renderCriteriaList(){
+  return CRITERIA.map(c => `
+    <div class="criteria-item">
+      <h3>${c.title}</h3>
+      <ul>${c.items.map(it => `<li>${it}</li>`).join("")}</ul>
+      <span class="period">${c.period}</span>
+    </div>
+  `).join("");
+}
+
+function openCriteriaModal(){
+  document.getElementById('criteria-list').innerHTML = renderCriteriaList();
+  document.getElementById('criteria-modal').classList.add('open');
+}
+function closeCriteriaModal(){
+  document.getElementById('criteria-modal').classList.remove('open');
 }
 
 
@@ -757,6 +916,7 @@ function render(){
     <header class="hero">
       <div class="eyebrow">Cérémonie 2026 — Résultats publics en temps réel</div>
       ${renderDeadlineBanner()}
+      <div class="criteria-btn-wrap"><button class="criteria-btn" id="open-criteria">📋 Voir les critères d'attribution</button></div>
       <h1 class="title">ICÔNE FRANCO-ARABE</h1>
       <div class="subtitle">Prix d'Excellence 2026</div>
       <p class="lede">Huit catégories distinguent les personnalités et institutions ayant marqué le rapprochement entre les mondes francophone et arabe. Choisissez un candidat par catégorie — un seul vote est possible par catégorie et par participant.</p>
@@ -773,6 +933,10 @@ function render(){
 }
 
 function attachHandlers(){
+  const openCriteriaBtn = document.getElementById("open-criteria");
+  if(openCriteriaBtn){
+    openCriteriaBtn.addEventListener("click", openCriteriaModal);
+  }
   const gateBtn = document.getElementById("gate-submit");
   if(gateBtn){
     gateBtn.addEventListener("click", onGateSubmit);
@@ -841,6 +1005,14 @@ function stopPolling(){
 /* Initial load: fetch public results so totals are visible even before identification,
    and start listening for live updates immediately for everyone. */
 (async function init(){
+  document.getElementById('close-criteria').addEventListener('click', closeCriteriaModal);
+  document.getElementById('criteria-modal').addEventListener('click', (e) => {
+    if(e.target.id === 'criteria-modal') closeCriteriaModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') closeCriteriaModal();
+  });
+
   await fetchAllVoteCounts();
   render();
   listenToVoteCounts();
