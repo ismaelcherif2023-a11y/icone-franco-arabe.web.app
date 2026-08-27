@@ -89,6 +89,24 @@
   }
   .hero .motif{ max-width:420px; margin: 30px auto 0; }
 
+  /* ---------- Deadline banner ---------- */
+  .deadline-banner{
+    max-width:520px; margin: 0 auto 8px;
+    padding: 12px 20px; border-radius: 10px;
+    font-family:'IBM Plex Mono', monospace; font-size: 13px;
+    text-align:center; letter-spacing:0.02em;
+    border:1px solid rgba(198,161,91,0.4);
+    background: rgba(198,161,91,0.08);
+    color: var(--gold-bright);
+  }
+  .deadline-banner.closed{
+    border-color: rgba(178,63,63,0.5);
+    background: rgba(178,63,63,0.12);
+    color: var(--wine-bright);
+    font-weight:600;
+  }
+  .deadline-banner .countdown{ font-weight:600; color:var(--parchment); }
+
   /* ---------- Identification gate ---------- */
   .gate{
     max-width:460px;
@@ -485,9 +503,38 @@ const CATEGORIES = [
 ];
 
 /* ============================================================
-   FIREBASE — base de données partagée (remplace window.storage
-   de Claude.ai pour un fonctionnement 100% indépendant)
+   DATE LIMITE DE VOTE — vendredi 28 août 2026, 15h00 (heure Guinée / GMT+0)
    ============================================================ */
+const VOTE_DEADLINE = new Date("2026-08-28T15:00:00Z").getTime();
+
+function isVotingOpen(){
+  return Date.now() < VOTE_DEADLINE;
+}
+
+function formatCountdown(ms){
+  if(ms <= 0) return null;
+  const totalSec = Math.floor(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+  let parts = [];
+  if(days > 0) parts.push(days + "j");
+  parts.push(String(hours).padStart(2,"0") + "h");
+  parts.push(String(mins).padStart(2,"0") + "min");
+  parts.push(String(secs).padStart(2,"0") + "s");
+  return parts.join(" ");
+}
+
+function renderDeadlineBanner(){
+  const remaining = VOTE_DEADLINE - Date.now();
+  if(remaining <= 0){
+    return `<div class="deadline-banner closed">🔒 Le vote est terminé — clôturé le vendredi 28 août 2026 à 15h00 (heure de la Guinée)</div>`;
+  }
+  return `<div class="deadline-banner">Le vote se termine le <strong>vendredi 28 août 2026 à 15h00</strong> (heure de la Guinée) — <span class="countdown">${formatCountdown(remaining)}</span> restant</div>`;
+}
+
+
 const firebaseConfig = {
   apiKey: "AIzaSyA5KrfrDIDJCTrzVnE-TgBsxVRa5iQ_fXc",
   authDomain: "icone-franco-arabe.firebaseapp.com",
@@ -568,6 +615,11 @@ async function loadVoterRecord(phoneKey){
 async function castVote(catId, candidateIndex){
   if(submitting[catId]) return;
   if(myVotes[catId] !== undefined) return;
+  if(!isVotingOpen()){
+    showToast("Le vote est terminé (clôturé le 28 août 2026 à 15h00).");
+    render();
+    return;
+  }
   submitting[catId] = true;
   render();
 
@@ -672,8 +724,8 @@ function renderCandidate(cat, idx){
       </div>
       <button class="btn vote-btn ${isMyChoice ? "voted" : ""}"
         data-cat="${cat.id}" data-idx="${idx}"
-        ${hasVotedHere || isSubmitting ? "disabled" : ""}>
-        ${isMyChoice ? "✓ Votre choix" : (isSubmitting ? "Envoi…" : "Voter")}
+        ${hasVotedHere || isSubmitting || !isVotingOpen() ? "disabled" : ""}>
+        ${isMyChoice ? "✓ Votre choix" : (isSubmitting ? "Envoi…" : (!isVotingOpen() ? "Vote terminé" : "Voter"))}
       </button>
     </div>
   `;
@@ -704,6 +756,7 @@ function render(){
   app.innerHTML = `
     <header class="hero">
       <div class="eyebrow">Cérémonie 2026 — Résultats publics en temps réel</div>
+      ${renderDeadlineBanner()}
       <h1 class="title">ICÔNE FRANCO-ARABE</h1>
       <div class="subtitle">Prix d'Excellence 2026</div>
       <p class="lede">Huit catégories distinguent les personnalités et institutions ayant marqué le rapprochement entre les mondes francophone et arabe. Choisissez un candidat par catégorie — un seul vote est possible par catégorie et par participant.</p>
@@ -791,6 +844,21 @@ function stopPolling(){
   await fetchAllVoteCounts();
   render();
   listenToVoteCounts();
+
+  // Rafraîchit le compte à rebours chaque seconde, et re-rend toute la page
+  // au moment exact où le vote se ferme (pour désactiver les boutons partout).
+  let wasOpen = isVotingOpen();
+  setInterval(() => {
+    const bannerEl = document.querySelector('.deadline-banner');
+    if(bannerEl){
+      bannerEl.outerHTML = renderDeadlineBanner();
+    }
+    const nowOpen = isVotingOpen();
+    if(wasOpen && !nowOpen){
+      render(); // le vote vient de se terminer : on redessine tout pour désactiver les boutons
+    }
+    wasOpen = nowOpen;
+  }, 1000);
 })();
 </script>
 </body>
